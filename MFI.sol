@@ -56,15 +56,16 @@ contract MFI{
     
 
     function MFI() public {
-
+        mfiSignup("MFI","j@example.com",22222);
+        addFund(1,"Fund1",15,30,20180101,20181231,1000,2000);
     }
     //"MFI12",15,30,20180401,20180730,100,500,"jinijose@gmail.com",8891222515
     //MFI.deployed().then(function(f) {f.mfiSignup('MFI12',15,30,20180401,20180730,100,500,'jinijose@gmail.com',8891222515).then(function(f) {console.log(f)})})
     //MFI.deployed().then(function(f) {f.mfiSignup('MFI12','jinijose@gmail.com',8891222515).then(function(f) {console.log(f.toString())})})
     function mfiSignup(bytes32 name, bytes32 email, uint256 cNo) public returns(bool) {
         require(name != "");
-        require(email!="");
-        require(cNo>0);
+        require(email != "");
+        require(cNo > 0);
         require(!isExists(_mfinames,name));
 
         mfiID = mfiID + 1;
@@ -91,6 +92,7 @@ contract MFI{
         require(eDate > 0);
         require(mnInv > 0);
         require(mxInv > 0);
+
         require(sDate < eDate);
         require(mnInv < mxInv);
         require(dRate < lRate);
@@ -120,18 +122,31 @@ contract MFI{
     }
     function invest(uint256 fundid, uint256 value) public payable returns(bool){
         require(fundid > 0);
-        //require(value > 0);
+        require(_funds[fundid].details[4] <= value);
+        require(_funds[fundid].details[5] >= value);
+        require(_funds[fundid].active == 1);
+        require(_funds[fundid].details[2] >= now);
+        require(_funds[fundid].details[3] <= now);
+
         _mfi[_funds[fundid].mfiid].owner.transfer(value);
 
         _funds[fundid].investedAmount.push(value);
         _funds[fundid].investedBy.push(msg.sender);
         _funds[fundid].investedDate.push(now);
+
+        
         return true;
     }
 
     function borrow(uint256 fundid,uint256 value) public returns(bool){
         
         require(value > 0);
+        require(_funds[fundid].details[6] >= value);
+        require(_funds[fundid].details[7] <= value);
+        require(_funds[fundid].details[2] >= now);
+        require(_funds[fundid].details[3] <= now);
+        require(arrsum(_funds[fundid].investedAmount) - arrsum(_funds[fundid].loanAmount) - value > 0);
+
         _funds[fundid].loanAmount.push(value);
         _funds[fundid].takenBy.push(msg.sender);
         _funds[fundid].loanDate.push(now);
@@ -150,33 +165,35 @@ contract MFI{
             _mfi[id].funds
         );
     }
-    function viewFund(uint256 id) view public returns(bytes32 name,uint256[] rates,uint){
+    function viewFund(uint256 id) view public returns(bytes32 name,uint256[] rates,uint active,uint256 TotalInvestment, uint256 TotalBorrowings){
         return(
             _funds[id].name,
             _funds[id].details,
-            _funds[id].active
+            _funds[id].active,
+            arrsum(_funds[id].investedAmount),
+            arrsum(_funds[id].loanAmount)
         );
     }
-    function viewLoans(uint256 id) view public returns(uint256[],address[],uint256[]){
+    function viewBorrowing(uint256 id) view public returns(uint256[],address[],uint256[]){
         return(
             _funds[id].loanAmount,
             _funds[id].takenBy,
             _funds[id].loanDate
         );
     }
-    function viewInvestments(uint256 id) view public returns(uint256[],address[],uint256[]){
+    function viewInvestment(uint256 id) view public returns(uint256[],address[],uint256[]){
         return(
             _funds[id].investedAmount,
             _funds[id].investedBy,
             _funds[id].investedDate
         );
     }
-
-    function paybackToMFI(uint256 fid,uint256 value) public returns(bool){
+/*
+    function paybackToFund(uint256 fid,uint256 value) public returns(bool){
         
         return true;
     }
-
+*/
     function isExists(bytes32[] _arr, bytes32 _who) pure private returns (bool) {
         for (uint i = 0; i < _arr.length; i++) {
             if (_arr[i] == _who) {
@@ -184,5 +201,13 @@ contract MFI{
             }
         }
         return false;
+    }
+
+    function arrsum(uint256[] arr) internal pure returns (uint256) {
+        uint256 S;
+        for(uint i;i < arr.length;i++) {
+            S += arr[i];
+        }
+        return S;
     }
 } 
