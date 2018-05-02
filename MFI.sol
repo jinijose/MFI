@@ -5,10 +5,14 @@ contract MFI{
     uint256 fundID = 0;
     uint256 invID = 0;
     uint256 lnID = 0;
+    uint256 bID = 0;
 
+    address owner;
     bytes32[] _mfinames;
+    address[] _borrowerArray;
     mapping(uint256 => fund) _funds;
     mapping(uint256 => mfi) _mfi;
+    mapping(uint256 => borrower) _borrowers;
 
     event mfiEvent(
         uint256 uID,
@@ -53,11 +57,19 @@ contract MFI{
         address[] takenBy;
         uint256[] loanDate;
     }
-    
+    struct borrower{
+        uint256 id;
+        bytes32 name;
+        address baddress;
+        uint256 requestedAmount;
+        uint256 approvedAmount;
+        uint256[] borrowedAmount;
+    }
 
     function MFI() public {
-        mfiSignup("MFI","j@example.com",22222);
-        addFund(1,"Fund1",15,30,20180101,20181231,1000,2000);
+        //mfiSignup("MFI","j@example.com",22222);
+        //addFund(1,"Fund1",15,30,20180101,20181231,1000,2000);
+        owner = msg.sender;
     }
     //"MFI12",15,30,20180401,20180730,100,500,"jinijose@gmail.com",8891222515
     //MFI.deployed().then(function(f) {f.mfiSignup('MFI12',15,30,20180401,20180730,100,500,'jinijose@gmail.com',8891222515).then(function(f) {console.log(f)})})
@@ -128,7 +140,7 @@ contract MFI{
         require(_funds[fundid].details[2] >= now);
         require(_funds[fundid].details[3] <= now);
 
-        _mfi[_funds[fundid].mfiid].owner.transfer(value);
+        owner.transfer(value);
 
         _funds[fundid].investedAmount.push(value);
         _funds[fundid].investedBy.push(msg.sender);
@@ -138,7 +150,10 @@ contract MFI{
         return true;
     }
 
-    function borrow(uint256 fundid,uint256 value) public returns(bool){
+    //allowance
+    //approval
+
+    function borrow(uint256 fundid,uint256 value,uint256 bid) public returns(bool){
         
         require(value > 0);
         require(_funds[fundid].details[6] >= value);
@@ -146,14 +161,36 @@ contract MFI{
         require(_funds[fundid].details[2] >= now);
         require(_funds[fundid].details[3] <= now);
         require(arrsum(_funds[fundid].investedAmount) - arrsum(_funds[fundid].loanAmount) - value > 0);
+        require(_borrowers[bid].approvedAmount >= arrsum(_borrowers[bid].borrowedAmount) + value);
 
         _funds[fundid].loanAmount.push(value);
         _funds[fundid].takenBy.push(msg.sender);
         _funds[fundid].loanDate.push(now);
-
+        
+        _borrowers[bid].borrowedAmount.push(value);
         return true;
     }
-    
+    function addBorrower(bytes32 name, address baddress, uint256 reqAmount) public returns(bool){
+        require(!borrowerExists(baddress));
+        
+        borrower memory b;
+        bID += 1;
+        b.id = bID;
+        b.name = name;
+        b.baddress = baddress;
+        b.requestedAmount = reqAmount;
+        b.approvedAmount = 0;
+
+        _borrowers[bID] = b;
+        _borrowerArray.push(baddress);
+        return true;
+    }
+    function approveBorrowal(uint256 bid, uint256 value) public returns(bool){
+        require(_borrowers[bid].approvedAmount <= _borrowers[bid].requestedAmount);
+
+        _borrowers[bid].approvedAmount = _borrowers[bid].approvedAmount + value;
+        return true;
+    }
     function viewMFI(uint256 id) view public returns(address Owner,bytes32 Name,
     uint256 Rating,bytes32 Email,uint ContactNo,uint256[] FundsList){
         return(
@@ -209,5 +246,13 @@ contract MFI{
             S += arr[i];
         }
         return S;
+    }
+
+    function borrowerExists(address b) internal view returns(bool){
+
+        for(uint i = 1;i <= _borrowerArray.length; i++){
+            require(_borrowerArray[i] == b);
+        }
+        return false;
     }
 } 
