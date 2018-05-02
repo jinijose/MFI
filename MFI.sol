@@ -64,6 +64,7 @@ contract MFI{
         uint256 requestedAmount;
         uint256 approvedAmount;
         uint256[] borrowedAmount;
+        uint256[] paidBackAmount;
     }
 
     function MFI() public {
@@ -225,12 +226,23 @@ contract MFI{
             _funds[id].investedDate
         );
     }
-/*
-    function paybackToFund(uint256 fid,uint256 value) public returns(bool){
-        
+
+    function paybackToFund(uint256 fid,uint256 value, uint256 bid) public returns(bool){
+        //accept borrowed amount
+        //calculate interest
+        //transfer to fund
+        uint256 intr = _funds[fid].details[1];
+        uint256 ttl = value + (value * intr / 100);
+        owner.transfer(ttl);
+        _borrowers[bid].paidBackAmount.push(value);
         return true;
     }
-*/
+    function paybackToInvester(uint256 fid, uint256 value, uint256 iid) public returns(bool){
+        uint256 intr = _funds[fid].details[0];
+        uint256 ttl = value + (value * intr / 100);
+        owner.transfer(ttl);
+        return true;
+    }
     function isExists(bytes32[] _arr, bytes32 _who) pure private returns (bool) {
         for (uint i = 0; i < _arr.length; i++) {
             if (_arr[i] == _who) {
@@ -254,5 +266,16 @@ contract MFI{
             require(_borrowerArray[i] == b);
         }
         return false;
+    }
+
+    function viewBorrower(uint256 bid) view public returns(bytes32 name, address baddress,uint256 requestedAmount, uint256 approvedAmount, uint256[] borrowedAmounts, uint256[] paidBackAmount){
+        return(
+            _borrowers[bid].name,
+            _borrowers[bid].baddress,
+            _borrowers[bid].requestedAmount,
+            _borrowers[bid].approvedAmount,
+            _borrowers[bid].borrowedAmount,
+            _borrowers[bid].paidBackAmount
+        );
     }
 } 
