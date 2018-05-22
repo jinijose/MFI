@@ -56,6 +56,7 @@ contract MFI{
         uint256[] loanAmount;
         address[] takenBy;
         uint256[] loanDate;
+        address[] borrowers;
     }
     struct borrower{
         uint256 id;
@@ -65,6 +66,7 @@ contract MFI{
         uint256 approvedAmount;
         uint256[] borrowedAmount;
         uint256[] paidBackAmount;
+        uint256[] paidBackDate;
     }
 
     function MFI() public {
@@ -163,6 +165,7 @@ contract MFI{
         require(_funds[fundid].details[3] <= now);
         require(arrsum(_funds[fundid].investedAmount) - arrsum(_funds[fundid].loanAmount) - value > 0);
         require(_borrowers[bid].approvedAmount >= arrsum(_borrowers[bid].borrowedAmount) + value);
+        require(!isExistsA(_funds[fundid].borrowers,msg.sender));
 
         _funds[fundid].loanAmount.push(value);
         _funds[fundid].takenBy.push(msg.sender);
@@ -171,9 +174,10 @@ contract MFI{
         _borrowers[bid].borrowedAmount.push(value);
         return true;
     }
-    function addBorrower(bytes32 name, address baddress, uint256 reqAmount) public returns(bool){
-        require(!borrowerExists(baddress));
-        
+    function addBorrower(bytes32 name, address baddress, uint256 reqAmount,uint256 fundid) public returns(bool){
+        require(!borrowerExists(_borrowerArray, baddress));
+        require(!isExistsA(_funds[fundid].borrowers,baddress));
+
         borrower memory b;
         bID += 1;
         b.id = bID;
@@ -181,9 +185,11 @@ contract MFI{
         b.baddress = baddress;
         b.requestedAmount = reqAmount;
         b.approvedAmount = 0;
+        
 
         _borrowers[bID] = b;
         _borrowerArray.push(baddress);
+        _funds[fundid].borrowers.push(baddress);
         return true;
     }
     function approveBorrowal(uint256 bid, uint256 value) public returns(bool){
@@ -235,6 +241,7 @@ contract MFI{
         uint256 ttl = value + (value * intr / 100);
         owner.transfer(ttl);
         _borrowers[bid].paidBackAmount.push(value);
+        _borrowers[bid].paidBackDate.push(now);
         return true;
     }
     function paybackToInvester(uint256 fid, uint256 value, uint256 iid) public returns(bool){
@@ -242,6 +249,14 @@ contract MFI{
         uint256 ttl = value + (value * intr / 100);
         owner.transfer(ttl);
         return true;
+    }
+    function isExistsA(address[] _arr, address _who) pure private returns (bool) {
+        for (uint i = 0; i < _arr.length; i++) {
+            if (_arr[i] == _who) {
+                return true;
+            }
+        }
+        return false;
     }
     function isExists(bytes32[] _arr, bytes32 _who) pure private returns (bool) {
         for (uint i = 0; i < _arr.length; i++) {
@@ -260,22 +275,22 @@ contract MFI{
         return S;
     }
 
-    function borrowerExists(address b) internal view returns(bool){
+    function borrowerExists(address[] barr, address b) internal view returns(bool){
 
-        for(uint i = 1;i <= _borrowerArray.length; i++){
-            require(_borrowerArray[i] == b);
+        for(uint i = 1;i <= barr.length; i++){
+            require(barr[i] == b);
         }
         return false;
     }
 
-    function viewBorrower(uint256 bid) view public returns(bytes32 name, address baddress,uint256 requestedAmount, uint256 approvedAmount, uint256[] borrowedAmounts, uint256[] paidBackAmount){
+    function viewBorrower(uint256 b) view public returns(bytes32 name, address add,uint256 rAmt, uint256 aAmt, uint256[] bAmts, uint256[] pAmts){
         return(
-            _borrowers[bid].name,
-            _borrowers[bid].baddress,
-            _borrowers[bid].requestedAmount,
-            _borrowers[bid].approvedAmount,
-            _borrowers[bid].borrowedAmount,
-            _borrowers[bid].paidBackAmount
+            _borrowers[b].name,
+            _borrowers[b].baddress,
+            _borrowers[b].requestedAmount,
+            _borrowers[b].approvedAmount,
+            _borrowers[b].borrowedAmount,
+            _borrowers[b].paidBackAmount
         );
     }
 } 
