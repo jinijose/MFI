@@ -13,6 +13,7 @@ contract MFI{
     mapping(uint256 => fund) _funds;
     mapping(uint256 => mfi) _mfi;
     mapping(uint256 => borrower) _borrowers;
+    mapping(address => bool) _mfiaddress;
 
     event mfiEvent(
         uint256 uID,
@@ -74,7 +75,8 @@ contract MFI{
         //addFund(1,"Fund1",15,30,20180101,20181231,1000,2000);
         owner = msg.sender;
     }
-    //"MFI12",15,30,20180401,20180730,100,500,"jinijose@gmail.com",8891222515
+    //"MFI12","jinijose@gmail.com",8891222515
+    //"0x4d464931","0x6a696e696a6f736540676d61696c2e636f6d",8891222515
     //MFI.deployed().then(function(f) {f.mfiSignup('MFI12',15,30,20180401,20180730,100,500,'jinijose@gmail.com',8891222515).then(function(f) {console.log(f)})})
     //MFI.deployed().then(function(f) {f.mfiSignup('MFI12','jinijose@gmail.com',8891222515).then(function(f) {console.log(f.toString())})})
     function mfiSignup(bytes32 name, bytes32 email, uint256 cNo) public returns(bool) {
@@ -94,11 +96,17 @@ contract MFI{
 
         _mfi[mfiID] = m;
         _mfinames.push(name);
+        _mfiaddress[msg.sender] =  true;
         mfiEvent(mfiID,msg.sender,name,0,email,cNo);
 
         return true;
     }
-
+    function isMFI() view public returns(bool){
+        if(_mfiaddress[msg.sender] == true){
+            return true;
+        }
+        return false;
+    }
     function addFund(uint256 mfiid,bytes32 name, uint256 dRate, uint256 lRate, uint256 sDate, uint256 eDate, uint256 mnInv, uint256 mxInv) public returns(bool) {
         require(name != "");
         require(dRate > 0);
